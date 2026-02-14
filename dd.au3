@@ -12,19 +12,19 @@ EndIf
 ; -----------------------------------------
 Func DD_Init()
     If Not FileExists($DD_DLL) Then
-        _Log("DD_Init: dd60300.dll не найден")
+        _BotLog("DD_Init: dd60300.dll не найден")
         Return False
     EndIf
 
     $g_hDD = DllOpen($DD_DLL)
     If $g_hDD = -1 Then
-        _Log("DD_Init: ошибка открытия dd60300.dll")
+        _BotLog("DD_Init: ошибка открытия dd60300.dll")
         Return False
     EndIf
 
     ; Инициализация DD
     DllCall($g_hDD, "int", "DD_btn", "int", 0)
-    _Log("DD_Init: DD инициализирован")
+    _BotLog("DD_Init: DD инициализирован")
 
     Return True
 EndFunc
@@ -37,7 +37,7 @@ Func DD_Shutdown()
     If $g_hDD <> -1 Then
         DllClose($g_hDD)
         $g_hDD = -1
-        _Log("DD_Shutdown: DLL закрыта")
+        _BotLog("DD_Shutdown: DLL закрыта")
     EndIf
 EndFunc
 
