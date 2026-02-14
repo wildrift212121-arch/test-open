@@ -99,10 +99,3 @@ Global $g_btnBattleStop
 Global $g_chkAutoBattle
 Global $g_chkDeath
 Global $g_lblInfo
-
-; --- Additional missing variables ---
-Global $g_sAionTitle = "AION2"
-Global $g_aRoute = []
-Global $g_tRecord = 0
-Global $g_bPlayback = False
-Global $g_iPlaybackIndex = 0

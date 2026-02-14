@@ -2,6 +2,7 @@ If @ScriptName <> "main.au3" Then
     Exit
 EndIf
 
+#include <GUIConstantsEx.au3>
 
 Func _Log($s)
     _BotLog($s)

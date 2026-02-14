@@ -18,7 +18,7 @@ Func Death_Check()
     Local $pos = IMG_FindDeathButton()
 
     If IsArray($pos) Then
-        _BotLog("Смерть обнаружена")
+        _BotLog("Смерть обнаружена в позиции: X=" & $pos[0] & " Y=" & $pos[1])
         Return True
     EndIf
 
@@ -36,8 +36,8 @@ Func Death_Handle()
     Local $pos = IMG_FindDeathButton()
 
     If IsArray($pos) Then
-        _BotLog("Кнопка возрождения найдена")
-        MouseClick("left", $pos[0], $pos[1])
+        _BotLog("Кнопка возрождения найдена, кликаю...")
+        Mouse_HumanClick($pos[0], $pos[1])
         Sleep(1500)
     Else
         _BotLog("Кнопка возрождения НЕ найдена")

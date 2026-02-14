@@ -26,6 +26,19 @@ EndFunc
 
 
 ; -----------------------------------------
+; FIND AION WINDOW (Alias for compatibility)
+; Returns: window handle or 0
+; -----------------------------------------
+Func AION_Find()
+    Local $h = WinGetHandle($g_sAionTitle)
+    If @error Then
+        Return 0
+    EndIf
+    Return $h
+EndFunc
+
+
+; -----------------------------------------
 ; ACTIVATE AION WINDOW
 ; -----------------------------------------
 Func AION_Activate()
