@@ -39,7 +39,7 @@ EndFunc
 ; Returns: [x, y] or 0
 ; -----------------------------------------
 Func IMG_FindDeathButton()
-    Local $h = AION_Find()
+    Local $h = AION_FindWindow()
     If $h = 0 Then
         _BotLog("IMG_FindDeathButton: окно AION2 не найдено")
         Return 0
@@ -56,10 +56,11 @@ Func IMG_FindDeathButton()
     Local $right = $r[2]
     Local $bottom = $r[3]
 
-    ; Поиск PNG внутри окна
-    Local $a = _ImageSearch($DEATH_IMG, $left, $top, $right, $bottom, -1, 15)
+    ; Поиск PNG внутри окна - используем 14 параметров для совместимости с UDF 3.5
+    ; _ImageSearch($sImagePath, $iLeft, $iTop, $iRight, $iBottom, $iScreen, $iTolerance, $iResults, $iCenterPOS, $fMinScale, $fMaxScale, $fScaleStep, $iReturnDebug, $iUseCache)
+    Local $a = _ImageSearch($DEATH_IMG, $left, $top, $right, $bottom, -1, 15, 1, 1, 1.0, 1.0, 0.1, 0, 0)
 
-    If @error Or $a[0][0] = 0 Then
+    If @error Or Not IsArray($a) Or $a[0] = 0 Then
         Return 0
     EndIf
 

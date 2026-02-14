@@ -12,10 +12,15 @@ Global Const $INI = @ScriptDir & "\settings.ini"
 Global Const $DD_DLL = @ScriptDir & "\dd60300.dll"
 Global Const $DEATH_IMG = @ScriptDir & "\assets\death.png"
 
+; --- AION window ---
+Global $g_sAionTitle = "AION"
+
 ; --- DD handle ---
 Global $g_hDD = -1
 
 ; --- Playback ---
+Global $g_bPlayback = False
+Global $g_iPlaybackIndex = 0
 Global $g_sLog = ""
 Global $g_aLines = 0
 Global $g_iIndex = 0
@@ -43,6 +48,8 @@ Global $g_sRecFilePath = ""
 Global $g_iLastX = -1, $g_iLastY = -1
 Global $g_bLastL = False, $g_bLastR = False
 Global $g_aKeyMap[10][2]
+Global $g_aRoute = []
+Global $g_tRecord = 0
 
 ; --- Battle ---
 Global $g_bBattle = False
@@ -51,7 +58,7 @@ Global $g_tBattleStart = 0
 Global $g_tQ = 0, $g_tF = 0, $g_tE = 0, $g_t5 = 0, $g_t6 = 0
 
 ; --- Death detection ---
-Global $g_bCheckDeath = False
+Global $g_bDeathCheck = False
 Global $g_tDeathCheck = 0
 
 ; --- GUI handles (filled in main.au3) ---
