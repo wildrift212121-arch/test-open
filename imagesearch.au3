@@ -18,9 +18,9 @@ EndIf
 Func IMG_Init()
     Local $ok = _ImageSearch_Startup()
     If $ok Then
-        _Log("ImageSearch: инициализация успешна")
+        _BotLog("ImageSearch: инициализация успешна")
     Else
-        _Log("ImageSearch: ошибка инициализации")
+        _BotLog("ImageSearch: ошибка инициализации")
     EndIf
 EndFunc
 
@@ -30,7 +30,7 @@ EndFunc
 ; -----------------------------------------
 Func IMG_Shutdown()
     _ImageSearch_Shutdown()
-    _Log("ImageSearch: завершение работы")
+    _BotLog("ImageSearch: завершение работы")
 EndFunc
 
 
@@ -41,13 +41,13 @@ EndFunc
 Func IMG_FindDeathButton()
     Local $h = AION_Find()
     If $h = 0 Then
-        _Log("IMG_FindDeathButton: окно AION2 не найдено")
+        _BotLog("IMG_FindDeathButton: окно AION2 не найдено")
         Return 0
     EndIf
 
     Local $r = AION_GetRect()
     If Not IsArray($r) Then
-        _Log("IMG_FindDeathButton: не удалось получить координаты окна")
+        _BotLog("IMG_FindDeathButton: не удалось получить координаты окна")
         Return 0
     EndIf
 
@@ -75,8 +75,8 @@ Func IMG_DebugDeath()
     Local $pos = IMG_FindDeathButton()
 
     If IsArray($pos) Then
-        _Log("DEBUG: Кнопка смерти найдена: X=" & $pos[0] & " Y=" & $pos[1])
+        _BotLog("DEBUG: Кнопка смерти найдена: X=" & $pos[0] & " Y=" & $pos[1])
     Else
-        _Log("DEBUG: Кнопка смерти НЕ найдена")
+        _BotLog("DEBUG: Кнопка смерти НЕ найдена")
     EndIf
 EndFunc

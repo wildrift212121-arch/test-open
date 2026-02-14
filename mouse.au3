@@ -30,7 +30,7 @@ Func Mouse_ApplySettings()
     IniWrite($INI, "Mouse", "Smooth", $g_bSmooth ? 1 : 0)
     IniWrite($INI, "Mouse", "MinMove", $g_iMinMove)
 
-    _Log("Настройки мыши применены")
+    _BotLog("Настройки мыши применены")
 EndFunc
 
 
