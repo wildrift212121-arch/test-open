@@ -18,7 +18,7 @@ Func Recorder_Start()
     If $g_bRecording Then Return
 
     $g_bRecording = True
-    $g_aRoute = []
+    ReDim $g_aRoute[0]
     $g_tRecord = TimerInit()
 
     _BotLog("Запись маршрута начата")
@@ -128,7 +128,7 @@ Func Recorder_Load($file)
         Return False
     EndIf
 
-    $g_aRoute = []
+    ReDim $g_aRoute[0]
 
     While 1
         Local $line = FileReadLine($h)

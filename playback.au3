@@ -89,7 +89,7 @@ Func Playback_Load($file)
         Return False
     EndIf
 
-    $g_aRoute = []
+    ReDim $g_aRoute[0]
 
     While 1
         Local $line = FileReadLine($h)

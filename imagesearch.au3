@@ -65,7 +65,10 @@ Func IMG_FindDeathButton()
     EndIf
 
     ; Возвращаем координаты центра кнопки
-    Return [$a[1][0], $a[1][1]]
+    Local $pos[2]
+    $pos[0] = $a[1][0]
+    $pos[1] = $a[1][1]
+    Return $pos
 EndFunc
 
 

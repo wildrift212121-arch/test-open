@@ -48,7 +48,7 @@ Global $g_sRecFilePath = ""
 Global $g_iLastX = -1, $g_iLastY = -1
 Global $g_bLastL = False, $g_bLastR = False
 Global $g_aKeyMap[10][2]
-Global $g_aRoute = []
+Global $g_aRoute[0]
 Global $g_tRecord = 0
 
 ; --- Battle ---
