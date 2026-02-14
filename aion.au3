@@ -26,6 +26,15 @@ EndFunc
 
 
 ; -----------------------------------------
+; FIND AION WINDOW (Alias for compatibility)
+; Returns: window handle or 0
+; -----------------------------------------
+Func AION_Find()
+    Return AION_FindWindow()
+EndFunc
+
+
+; -----------------------------------------
 ; ACTIVATE AION WINDOW
 ; -----------------------------------------
 Func AION_Activate()

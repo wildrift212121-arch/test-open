@@ -85,7 +85,7 @@ Func Key_ReleaseAll()
     DD_Btn(4)
     DD_Btn(8)
 
-    _Log("Все клавиши и мышь отпущены")
+    _BotLog("Все клавиши и мышь отпущены")
 EndFunc
 
 
@@ -93,7 +93,7 @@ EndFunc
 ; TEST KEYS (WASD)
 ; -----------------------------------------
 Func Key_Test()
-    _Log("Тест клавиш: WASD")
+    _BotLog("Тест клавиш: WASD")
 
     Key_Send(302, "DOWN")
     Sleep(200)
