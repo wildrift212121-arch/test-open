@@ -41,6 +41,7 @@ $g_btnStartPlay     = GUICtrlCreateButton("Воспроизведение", 10, 
 $g_btnStopPlay      = GUICtrlCreateButton("Стоп воспроизв.", 140, 320, 120, 30)
 
 $g_chkDeath         = GUICtrlCreateCheckbox("Отслеживать смерть", 280, 240, 150, 20)
+$g_chkKeyCache      = GUICtrlCreateCheckbox("Кэш клавиш", 280, 280, 150, 20)
 
 GUISetState(@SW_SHOW)
 
