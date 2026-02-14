@@ -45,8 +45,8 @@ EndFunc
 ; -----------------------------------------
 ; INTERNAL: PRESS KEY WITH RANDOM DELAY
 ; -----------------------------------------
-Func _BattleKey($dd, $timerVar, $base, $delta)
-    Local $t = TimerDiff(Eval($timerVar))
+Func _BattleKey($dd, $timerVarName, $base, $delta)
+    Local $t = TimerDiff(Eval($timerVarName))
     Local $need = _RandInterval($base, $delta)
 
     If $t >= $need Then
@@ -54,7 +54,8 @@ Func _BattleKey($dd, $timerVar, $base, $delta)
         Sleep(Random(40, 70))
         Key_Send($dd, "UP")
 
-        Assign($timerVar, TimerInit(), 2)
+        ; Update global timer variable (scope flag 2 = global)
+        Assign($timerVarName, TimerInit(), 2)
 
         _BotLog("Бой: нажата клавиша DD=" & $dd)
     EndIf
