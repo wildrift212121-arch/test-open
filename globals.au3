@@ -99,3 +99,11 @@ Global $g_btnBattleStop
 Global $g_chkAutoBattle
 Global $g_chkDeath
 Global $g_lblInfo
+
+; --- GUI controls for main window ---
+Global $g_btnStartBattle = 0
+Global $g_btnStopBattle = 0
+Global $g_btnStartRecord = 0
+Global $g_btnStopRecord = 0
+Global $g_btnStartPlay = 0
+Global $g_btnStopPlay = 0
