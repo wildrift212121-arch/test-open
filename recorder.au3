@@ -6,6 +6,8 @@ If @ScriptName <> "main.au3" Then
     Exit
 EndIf
 
+#include <Array.au3>
+
 
 
 
