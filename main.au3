@@ -31,18 +31,33 @@ GUICtrlCreateLabel("Лог:", 10, 10, 100, 20)
 $g_editLog = GUICtrlCreateEdit("", 10, 30, 400, 200, BitOR($ES_AUTOVSCROLL, $WS_VSCROLL))
 
 ; Кнопки
-$btnStartBattle   = GUICtrlCreateButton("Старт бой", 10, 240, 120, 30)
-$btnStopBattle    = GUICtrlCreateButton("Стоп бой", 140, 240, 120, 30)
+$g_btnStartBattle   = GUICtrlCreateButton("Старт бой", 10, 240, 120, 30)
+$g_btnStopBattle    = GUICtrlCreateButton("Стоп бой", 140, 240, 120, 30)
 
-$btnStartRecord   = GUICtrlCreateButton("Запись маршрута", 10, 280, 120, 30)
-$btnStopRecord    = GUICtrlCreateButton("Стоп запись", 140, 280, 120, 30)
+$g_btnStartRecord   = GUICtrlCreateButton("Запись маршрута", 10, 280, 120, 30)
+$g_btnStopRecord    = GUICtrlCreateButton("Стоп запись", 140, 280, 120, 30)
 
-$btnStartPlay     = GUICtrlCreateButton("Воспроизведение", 10, 320, 120, 30)
-$btnStopPlay      = GUICtrlCreateButton("Стоп воспроизв.", 140, 320, 120, 30)
+$g_btnStartPlay     = GUICtrlCreateButton("Воспроизведение", 10, 320, 120, 30)
+$g_btnStopPlay      = GUICtrlCreateButton("Стоп воспроизв.", 140, 320, 120, 30)
 
-$chkDeath         = GUICtrlCreateCheckbox("Отслеживать смерть", 280, 240, 150, 20)
+$g_chkDeath         = GUICtrlCreateCheckbox("Отслеживать смерть", 280, 240, 150, 20)
 
 GUISetState(@SW_SHOW)
+
+; -----------------------------------------
+; INITIALIZATION
+; -----------------------------------------
+_BotLog("Initializing bot systems...")
+
+If Not DD_Init() Then
+    MsgBox(16, "Error", "Failed to initialize DD driver!")
+    Exit
+EndIf
+
+IMG_Init()
+Key_InitMap()
+
+_BotLog("Bot initialized successfully")
 
 
 ; -----------------------------------------
@@ -54,34 +69,38 @@ While 1
     Switch $msg
 
         Case $GUI_EVENT_CLOSE
+            _BotLog("Shutting down...")
+            Key_ReleaseAll()
+            DD_Shutdown()
+            IMG_Shutdown()
             Exit
 
-        Case $btnStartBattle
+        Case $g_btnStartBattle
             _BotLog("Нажата кнопка: старт боя")
             Battle_Start()
 
-        Case $btnStopBattle
+        Case $g_btnStopBattle
             _BotLog("Нажата кнопка: стоп боя")
             Battle_Stop()
 
-        Case $btnStartRecord
+        Case $g_btnStartRecord
             _BotLog("Нажата кнопка: запись маршрута")
             Recorder_Start()
 
-        Case $btnStopRecord
+        Case $g_btnStopRecord
             _BotLog("Нажата кнопка: стоп записи")
             Recorder_Stop()
 
-        Case $btnStartPlay
+        Case $g_btnStartPlay
             _BotLog("Нажата кнопка: воспроизведение")
             Playback_Start()
 
-        Case $btnStopPlay
+        Case $g_btnStopPlay
             _BotLog("Нажата кнопка: стоп воспроизведения")
             Playback_Stop()
 
-        Case $chkDeath
-            $g_bDeathCheck = _IsChecked($chkDeath)
+        Case $g_chkDeath
+            $g_bDeathCheck = _IsChecked($g_chkDeath)
             _BotLog("Отслеживание смерти: " & ($g_bDeathCheck ? "включено" : "выключено"))
 
     EndSwitch

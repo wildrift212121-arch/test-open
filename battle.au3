@@ -45,9 +45,8 @@ EndFunc
 ; -----------------------------------------
 ; INTERNAL: PRESS KEY WITH RANDOM DELAY
 ; -----------------------------------------
-Func _BattleKey($dd, $base, $delta)
-    Local $timerName = "g_t" & $dd
-    Local $t = TimerDiff(Eval($timerName))
+Func _BattleKey($dd, $timerVar, $base, $delta)
+    Local $t = TimerDiff(Eval($timerVar))
     Local $need = _RandInterval($base, $delta)
 
     If $t >= $need Then
@@ -55,7 +54,7 @@ Func _BattleKey($dd, $base, $delta)
         Sleep(Random(40, 70))
         Key_Send($dd, "UP")
 
-        Assign($timerName, TimerInit())
+        Assign($timerVar, TimerInit(), 2)
 
         _BotLog("Бой: нажата клавиша DD=" & $dd)
     EndIf
@@ -72,17 +71,17 @@ Func Battle_Process()
     ; Q → F → E → 5 → 6
 
     ; Q (DD=301)
-    _BattleKey(301, 900, 200)
+    _BattleKey(301, "g_tQ", 900, 200)
 
     ; F (DD=303)
-    _BattleKey(303, 1200, 300)
+    _BattleKey(303, "g_tF", 1200, 300)
 
     ; E (DD=304)
-    _BattleKey(304, 1500, 300)
+    _BattleKey(304, "g_tE", 1500, 300)
 
     ; 5 (DD=205)
-    _BattleKey(205, 2500, 500)
+    _BattleKey(205, "g_t5", 2500, 500)
 
     ; 6 (DD=206)
-    _BattleKey(206, 3000, 600)
+    _BattleKey(206, "g_t6", 3000, 600)
 EndFunc
