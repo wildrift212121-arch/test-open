@@ -90,3 +90,24 @@ Func AION_Click($x, $y)
 
     _BotLog("Клик в AION: " & $x & ", " & $y)
 EndFunc
+
+
+; -----------------------------------------
+; GET AION WINDOW RECT
+; Returns: array [left, top, right, bottom] or 0
+; -----------------------------------------
+Func AION_GetRect()
+    Local $h = AION_FindWindow()
+    If $h = 0 Then Return 0
+
+    Local $pos = WinGetPos($h)
+    If Not IsArray($pos) Or UBound($pos) < 4 Then Return 0
+
+    Local $rect[4]
+    $rect[0] = $pos[0]         ; left
+    $rect[1] = $pos[1]         ; top
+    $rect[2] = $pos[0] + $pos[2] ; right
+    $rect[3] = $pos[1] + $pos[3] ; bottom
+
+    Return $rect
+EndFunc

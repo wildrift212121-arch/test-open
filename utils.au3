@@ -3,6 +3,10 @@ If @ScriptName <> "main.au3" Then
 EndIf
 
 
+Func _Log($s)
+    _BotLog($s)
+EndFunc
+
 Func _BotLog($s)
     If $g_editLog = 0 Then Return
 

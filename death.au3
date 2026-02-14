@@ -14,10 +14,10 @@ EndIf
 Func Death_Check()
     If Not $g_bDeathCheck Then Return False
 
-    ; Ищем death.png на экране
-    Local $res = Img_Find("death.png", 0, 0, 0, 0, 10)
+    ; Используем IMG_FindDeathButton() из imagesearch.au3
+    Local $pos = IMG_FindDeathButton()
 
-    If $res[0] > 0 Then
+    If IsArray($pos) Then
         _BotLog("Смерть обнаружена")
         Return True
     EndIf
@@ -32,12 +32,12 @@ EndFunc
 Func Death_Handle()
     _BotLog("Начинаю процесс возрождения")
 
-    ; Нажимаем кнопку "Возродиться"
-    Local $res = Img_Find("resurrect.png", 0, 0, 0, 0, 20)
+    ; Ищем кнопку смерти/возрождения
+    Local $pos = IMG_FindDeathButton()
 
-    If $res[0] > 0 Then
+    If IsArray($pos) Then
         _BotLog("Кнопка возрождения найдена")
-        MouseClick("left", $res[1][0], $res[1][1])
+        MouseClick("left", $pos[0], $pos[1])
         Sleep(1500)
     Else
         _BotLog("Кнопка возрождения НЕ найдена")
@@ -45,14 +45,6 @@ Func Death_Handle()
 
     ; Ждём загрузку
     Sleep(3000)
-
-    ; Нажимаем кнопку "ОК" после возрождения
-    Local $ok = Img_Find("ok.png", 0, 0, 0, 0, 20)
-    If $ok[0] > 0 Then
-        _BotLog("ОК найден — подтверждаю возрождение")
-        MouseClick("left", $ok[1][0], $ok[1][1])
-        Sleep(1000)
-    EndIf
 
     _BotLog("Возрождение завершено")
 EndFunc

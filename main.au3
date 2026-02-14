@@ -6,6 +6,7 @@
 
 #include <GUIConstantsEx.au3>
 #include <WindowsConstants.au3>
+#include <Array.au3>
 
 #include "globals.au3"
 #include "utils.au3"
