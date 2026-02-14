@@ -87,7 +87,6 @@ Global $g_inMinMove
 Global $g_btnApplyMouse
 Global $g_btnTestKeys
 Global $g_btnReleaseKeys
-Global $g_chkKeyCache
 Global $g_editLog = 0
 Global $g_btnClearLog
 Global $g_btnTestMouse
@@ -97,7 +96,6 @@ Global $g_btnSelectArea
 Global $g_btnBattleStart
 Global $g_btnBattleStop
 Global $g_chkAutoBattle
-Global $g_chkDeath
 Global $g_lblInfo
 
 ; --- GUI controls for main window ---
@@ -107,3 +105,5 @@ Global $g_btnStartRecord = 0
 Global $g_btnStopRecord = 0
 Global $g_btnStartPlay = 0
 Global $g_btnStopPlay = 0
+Global $g_chkDeath = 0
+Global $g_chkKeyCache = 0
