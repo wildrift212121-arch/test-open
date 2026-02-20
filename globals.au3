@@ -3,7 +3,6 @@
 ;   globals.au3
 ; ============================
 
-
 ; --- Script info ---
 Global Const $SCRIPT_NAME = "Aion 2 Route Tool v10.0 (Modular)"
 
@@ -12,8 +11,8 @@ Global Const $INI = @ScriptDir & "\settings.ini"
 Global Const $DD_DLL = @ScriptDir & "\dd60300.dll"
 Global Const $DEATH_IMG = @ScriptDir & "\assets\death.png"
 
-; --- AION window ---
-Global $g_sAionTitle = "AION"
+; --- Window Title (теперь читается из INI) ---
+Global $g_sWindowTitle = IniRead($INI, "Window", "Title", "AION2")
 
 ; --- DD handle ---
 Global $g_hDD = -1
@@ -68,7 +67,6 @@ Global $g_hStatus = 0
 Global $g_hOverlay = 0
 
 ; --- GUI controls (declared here, created in main.au3) ---
-
 Global $g_btnRecStart
 Global $g_btnRecStop
 Global $g_lblRecFile
@@ -85,25 +83,3 @@ Global $g_chkInvY
 Global $g_chkSmooth
 Global $g_inMinMove
 Global $g_btnApplyMouse
-Global $g_btnTestKeys
-Global $g_btnReleaseKeys
-Global $g_btnClearLog
-Global $g_btnTestMouse
-Global $g_btnTestDD
-Global $g_btnCheckAion
-Global $g_btnSelectArea
-Global $g_btnBattleStart
-Global $g_btnBattleStop
-Global $g_chkAutoBattle
-Global $g_lblInfo
-
-; --- GUI controls for main window ---
-Global $g_editLog = 0
-Global $g_btnStartBattle = 0
-Global $g_btnStopBattle = 0
-Global $g_btnStartRecord = 0
-Global $g_btnStopRecord = 0
-Global $g_btnStartPlay = 0
-Global $g_btnStopPlay = 0
-Global $g_chkDeath = 0
-Global $g_chkKeyCache = 0

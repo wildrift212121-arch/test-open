@@ -1,0 +1,144 @@
+Aion 2 Route Tool — Project Context (to load at start of new assistant session)
+=====================================================================
+
+Purpose
+-------
+This document contains the current project context and conventions for "Denis bot" (AutoIt).
+Save this file and paste its contents into a new chat (or upload it) at the start of the next session
+so the assistant can restore project context and continue work consistently.
+
+Note about assistant memory
+----------------------------
+- The assistant cannot persist state between separate sessions on its own.
+- To "restore" context in a new session, paste this file (or the most relevant parts) into the conversation
+  and tell the assistant to use it as the project context. The assistant will then use it for the rest of that session.
+
+Project layout / main modules
+-----------------------------
+Files (modular architecture):
+- main.au3         — GUI and app glue; hotkeys; saving/restoring GUI settings to settings.ini
+- aion.au3         — AION window utilities (Find/Activate/Send DD keys)
+- recorder.au3     — route recording, 5 internal slots, in-memory routes, autosave behavior
+- playback.au3     — playing routes from slots / files; timing and DD input; instrumented for debug
+- battle.au3       — battle logic (start/stop/process), auto-start after route
+- route/           — folder for route .log files
+- dd60300.dll      — Direct Input DLL used via DllCall (must be present)
+- settings.ini     — configuration persisted across sessions
+
+Hotkeys and controls
+--------------------
+Keyboard:
+- F6  — start recording (Recorder_Start)
+- F7  — stop recording (Recorder_Stop)
+- F9  — start playback (Playback_Start)
+- F10 — unified stop "panic" (stops both Playback_Stop and Battle_Stop). When pressed assistant focuses main GUI.
+
+GUI:
+- Tabs: "Запись" (Record), "Воспроизведение" (Playback), "Бой" (Battle), "Отладка" (Debug)
+- Playback tab: slot selector combo (1..5), slot info label, assigned file label, Load, Save, Start (F9), Stop (F10)
+- Battle tab: Start, Stop, checkbox "Auto-battle after route"
+- Debug: multi-line log
+
+Route slots and files
+---------------------
+- 5 slots (1..5) maintained in memory as arrays (g_aRoutes[]).
+- Each slot can be assigned a file path that persists in settings.ini under section [Routes]:
+  - Slot1 = C:\...\route_1_YYYYMMDD-HHMMSS.log
+  - Slot2 = ...
+- When saving a route (Recorder_SaveToFile), file path is written to INI and bound to that slot.
+- When loading a route via GUI, Recorder_LoadFromFile sets the slot and writes the path to INI.
+- Routes_Init() (on program start) attempts to load Slot1..Slot5 if INI has paths and files exist.
+
+Route file naming convention
+---------------------------
+Default filename created by autosave: route_<slot>_<YYYYMMDD-HHMMSS>.log
+Stored in project route folder: @ScriptDir & "\route"
+
+settings.ini layout (currently used keys)
+-----------------------------------------
+[Mouse]
+K_move=3.5
+K_click=1.0
+InvX=0
+InvY=0
+Smooth=1
+MinMove=1
+
+[GUI]
+RouteSlot=1       ; currently selected slot (1..5)
+AutoBattleAfterRoute=0 or 1
+
+[Routes]
+Slot1=C:\path\to\route_1_...
+Slot2=...
+Slot3=...
+Slot4=...
+Slot5=...
+
+Behavioral notes / important details
+-----------------------------------
+- Au3Check warnings about "possibly used before declaration" are expected because modules use globals declared in main.au3.
+  To suppress warnings we added explicit Global declarations in modules (e.g. Global $g_hDD).
+- The combo box for slot selection must be filled with "1|2|3|4|5" when GUI is created, and then selection restored
+  with GUICtrlSetData($g_cmbRouteSlot, String($slot)) — do NOT clear the list in _LoadGuiSettings.
+- Playback_Process must check:
+  - that $g_aRoute is an array and has >0 lines
+  - whether index > total lines → natural completion
+  - on natural completion call Playback_Stop() then Battle_MaybeStartAfterRoute()
+- Battle_MaybeStartAfterRoute() should only start battle on natural completion and if the AutoBattle flag is set.
+
+Image-based death handling (new approach)
+----------------------------------------
+- The old PixelChecksum method is deprecated for death window detection.
+- Plan: use ImageSearch (ImageSearch_DLL_UDF) in a new module (e.g. imagesearch.au3 or death.au3).
+- That module should:
+  - load UDF/DLL,
+  - provide Death_FindWindow() returning coords or false,
+  - provide Death_Handle() that performs HumanClickDD(x,y) with small randomization.
+
+Logging and debugging
+---------------------
+- Use _BotLog($s) to append timestamped lines to GUI debug multi-line edit (or ConsoleWrite if GUI not created).
+- playback.au3 was instrumented with a local _dbg($s) wrapper with constant $PLAYBACK_DEBUG toggle to help capture
+  which lines get executed and why playback stops prematurely.
+
+What to paste at the start of a new chat
+---------------------------------------
+Paste the entire file contents of this txt (or the key sections below) and begin with:
+"Load this project context and use it for further modifications."
+
+Essential minimal snippet to paste into new chat:
+- Project name: "Aion 2 Route Tool / Denis bot"
+- File list and roles (main.au3, aion.au3, recorder.au3, playback.au3, battle.au3)
+- Hotkeys (F6,F7,F9,F10), route folder path, settings.ini keys, and note about ImageSearch replacement for death handling.
+- Mention that the assistant must always provide full corrected files on request.
+
+Recommended process to restore context in a new session
+------------------------------------------------------
+1. Open a new chat with the assistant (or the Copilot agent).
+2. Paste this file's content (or upload the file) as the first user message.
+3. Say: "Use the pasted context as project context for this session. Continue work on X." (X = task)
+4. Optionally attach the repository files you want modified or exact file contents if asking for changes.
+
+Change history / recent important changes
+----------------------------------------
+- Project refactored from monolithic script into modular files.
+- Implemented GUI settings saving/restoring to settings.ini.
+- Implemented slot-to-file binding saved in [Routes] section in INI.
+- Combined F10 to stop both playback and battle.
+- Replaced PixelChecksum death detection with plan to use ImageSearch_DLL_UDF (not yet added).
+- Added detailed playback logging to track unexpected stops.
+
+If you want persistence across sessions
+---------------------------------------
+- Save this file locally and paste/upload it when starting a new session.
+- Alternatively, keep a short "project passport" that lists the bare essentials (hotkeys, file layout, INI keys) and paste that.
+
+Contact for next steps
+----------------------
+On next session, say what you want to do (examples):
+- "Integrate ImageSearch_DLL_UDF and implement death handling module that clicks the revival button."
+- "Add 'Unassign route' button and implement copy-to-route-folder on save."
+- "Debug why playback stops early — here are the logs: [paste logs]."
+
+End of context file.
