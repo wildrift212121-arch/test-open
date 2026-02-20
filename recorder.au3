@@ -1,28 +1,25 @@
 ; recorder.au3
-; Version: 2.0 (2026-02-22)
-; - Запись маршраута мыши только целыми dx/dy ("сырые" шаги по 1 пикселю)
-; - Максимум совпадения с playback движением при разложении
-; - В остальном структура, слоты, статусы, автосохранение сохранены
+; Version: 3.1 (2026-02-22)
+; - Исправлено использование блока If...Else...EndIf для совместимости с AutoIt. 
+; - Движения мыши агрегированы, опорная точка сохраняется.
 
 If @ScriptName <> "main.au3" Then Exit
 
 #include <Misc.au3>
-
 Global Const $ROUTE_SLOTS = 5
 Global Const $ROUTE_DIR = @ScriptDir & "\route"
-Global Const $MOUSE_RECORD_INTERVAL = 7 ; ms: шаг по 1 пикселю = больше сообщений, меньше лагов
-
+Global Const $MOUSE_RECORD_INTERVAL = 8 ; ms: минимальный интервал между записями движения
+Global Const $MOUSE_MOVE_THRESHOLD = 1 ; пикселей: минимальный шаг для записи
 Global $g_aRoutes[$ROUTE_SLOTS]
 Global $g_iRouteCounts[$ROUTE_SLOTS]
 Global $g_iCurrentRouteSlot = 0
-
 Global $g_aRoute[1] = [0]
 Global $g_aRouteFiles[$ROUTE_SLOTS]
 Global $g_bRecording = False
 Global $g_tRecordStart = 0
+Global $g_tLastMouseRecorded = 0
 Global $g_iLastX = -1, $g_iLastY = -1
 Global $g_bLastL = False, $g_bLastR = False
-
 Global $KeyState[700]
 Global $g_aKeyMap[10][2]
 
@@ -77,6 +74,7 @@ Func Recorder_Start()
 
     $g_bRecording = True
     $g_tRecordStart = TimerInit()
+    $g_tLastMouseRecorded = 0
     $g_iLastX = -1
     $g_iLastY = -1
     $g_bLastL = False
@@ -92,7 +90,7 @@ Func Recorder_Start()
         $KeyState[$i] = 0
     Next
 
-    ; Сохраняем абсолютную позицию мыши первой строкой
+    ; Запоминаем абсолютную начальную позицию мыши
     Local $pos = MouseGetPos()
     __Route_AddLine(StringFormat("0.000:MOUSE_ABS:%d:%d", $pos[0], $pos[1]))
 
@@ -129,7 +127,6 @@ EndFunc
 Func Recorder_Process()
     If Not $g_bRecording Then Return
 
-    Static $g_tLastMouseRecorded = 0
     Local $t = TimerDiff($g_tRecordStart) / 1000.0
 
     Local $pos = MouseGetPos()
@@ -138,35 +135,21 @@ Func Recorder_Process()
         $g_iLastY = $pos[1]
     EndIf
 
+    Local $elapsed = TimerDiff($g_tLastMouseRecorded)
     Local $dx = $pos[0] - $g_iLastX
     Local $dy = $pos[1] - $g_iLastY
 
-    ; ------ ГЛАВНОЕ: разбивать движение на "сырые" dx/dy по 1 пикселю ------
-    While $dx <> 0 Or $dy <> 0
-        If Abs($dx) >= Abs($dy) Then
-            ; x сдвиг больше
-            Local $stepX = ($dx > 0) ? 1 : -1
-            Local $stepY = ($dy <> 0) ? Round($dy / Abs($dx)) : 0
-        Else
-            ; y сдвиг больше
-            Local $stepY = ($dy > 0) ? 1 : -1
-            Local $stepX = ($dx <> 0) ? Round($dx / Abs($dy)) : 0
+    ; Записываем, если прошло достаточно времени или был заметный сдвиг
+    If ($elapsed >= $MOUSE_RECORD_INTERVAL) Or (Abs($dx) >= $MOUSE_MOVE_THRESHOLD) Or (Abs($dy) >= $MOUSE_MOVE_THRESHOLD) Then
+        If $dx <> 0 Or $dy <> 0 Then
+            __Route_AddLine(StringFormat("%.3f:MOUSE:%d:%d", $t, $dx, $dy))
+            $g_iLastX = $pos[0]
+            $g_iLastY = $pos[1]
         EndIf
+        $g_tLastMouseRecorded = TimerInit()
+    EndIf
 
-        ; Учитываем минимальный шаг (если вдруг dx и dy оба 0)
-        If $stepX = 0 And $dx <> 0 Then $stepX = ($dx > 0) ? 1 : -1
-        If $stepY = 0 And $dy <> 0 Then $stepY = ($dy > 0) ? 1 : -1
-
-        __Route_AddLine(StringFormat("%.3f:MOUSE:%d:%d", $t, $stepX, $stepY))
-        $g_iLastX += $stepX
-        $g_iLastY += $stepY
-        $dx = $pos[0] - $g_iLastX
-        $dy = $pos[1] - $g_iLastY
-        ; Фильтруем сообщения (не чаще чем интервал MOUSE_RECORD_INTERVAL)
-        Sleep($MOUSE_RECORD_INTERVAL)
-    WEnd
-
-    ; --- удержание мыши (без изменений) ---
+    ; --- удержание мыши (кнопки) ---
     Static $pressTimeL = -1, $pressTimeR = -1
     Local $bL = _IsPressed("01")
     Local $bR = _IsPressed("02")
@@ -195,12 +178,11 @@ Func Recorder_Process()
         _BotLog("Записана ПКМ: " & $state2)
     EndIf
 
-    ; --- запись клавиш ---
+    ; --- клавиши клавиатуры ---
     For $i = 0 To UBound($g_aKeyMap) - 1
         Local $vk = $g_aKeyMap[$i][0]
         Local $dd = $g_aKeyMap[$i][1]
         If $dd = 0 Then ContinueLoop
-
         Local $pressed = _IsPressed(Hex($vk, 2))
         Local $mode = $KeyState[$dd]
         If $pressed And $mode <> 1 Then

@@ -1,8 +1,8 @@
 ; playback.au3
-; Version: 5.0 (2026-02-22)
-; - Для drag (при зажатии любой кнопки мыши) — DD_mov (абсолютное движение)
-; - Для обычных движений мыши — DD_movR (относительное)
-; - Сохраняются все функции, оригинальная логика и статусы
+; Version: 6.0 (2026-02-22)
+; - Воспроизведение в точном темпе записи: каждое движение запускается СТРОГО по расписанию!
+; - Движение мыши и drag выполняются за один шаг каждый, никаких мини-разложений.
+; - Сохраны все контрольные статусы и клавишные функции.
 
 If @ScriptName <> "main.au3" Then Exit
 
@@ -17,7 +17,6 @@ Global $g_iLastWaitingIndex = -1
 Global $BtnHeld[3] = [False, False, False]
 Global $MustSleepAfterBtn = False
 Global Const $PLAYBACK_DEBUG = True
-
 Global $LastAbsX = -1, $LastAbsY = -1
 
 Func _dbg($s)
@@ -130,17 +129,11 @@ Func Playback_Process()
     EndIf
 
     Local $t = Number($p[1])
-    Local $nextT = ($g_iPlaybackIndex < $g_aRoute[0]) ? Number(StringSplit($g_aRoute[$g_iPlaybackIndex + 1], ":", 1)[1]) : $t
-    Local $interval = $nextT - $t
     Local $now = TimerDiff($g_tPlaybackStart) / 1000.0
     Local $delta = $t - $now
 
-    If $delta > 0.02 Then
-        Local $sleepMs = Int(Min(Max(($delta - 0.01) * 1000, 10), 200))
-        If $delta < 0.5 Or $g_iLastWaitingIndex <> $g_iPlaybackIndex Then
-            _dbg(StringFormat("До выполнения строки index=%d осталось %.3f сек, сплю %d ms", $g_iPlaybackIndex, $delta, $sleepMs))
-            $g_iLastWaitingIndex = $g_iPlaybackIndex
-        EndIf
+    If $delta > 0.002 Then
+        Local $sleepMs = Int(Min(Max(($delta - 0.001) * 1000, 1), 100))
         Sleep($sleepMs)
         Return
     EndIf
@@ -156,10 +149,10 @@ Func Playback_Process()
                 If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_mov", "int", $absX, "int", $absY)
                 $LastAbsX = $absX
                 $LastAbsY = $absY
-                Sleep(10)
+                Sleep(5)
             EndIf
         Case "MOUSE"
-            If $p[0] >= 4 Then _Playback_MouseMove($p[3], $p[4], $interval)
+            If $p[0] >= 4 Then _Playback_MouseMove($p[3], $p[4])
         Case "MOUSE_BTN"
             If $p[0] >= 4 Then _Playback_MouseBtn($p[3], $p[4])
         Case Else
@@ -174,17 +167,15 @@ Func _Playback_Key($dd, $state)
     If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_key", "int", $dd, "int", $mode)
 EndFunc
 
-Func _Playback_MouseMove($dx, $dy, $interval)
+Func _Playback_MouseMove($dx, $dy)
     Local $mx = Number($dx)
     Local $my = Number($dy)
     If $g_bInvX Then $mx = -$mx
     If $g_bInvY Then $my = -$my
 
-    ; Инициализация LastAbsX/Y по первой точке маршрута
     If $LastAbsX = -1 Or $LastAbsY = -1 Then
-        ; Найти первую MOUSE_ABS в маршруте
-        For $i = 1 To $g_aRoute[0]
-            Local $pl = StringSplit($g_aRoute[$i], ":", 1)
+        For $j = 1 To $g_aRoute[0]
+            Local $pl = StringSplit($g_aRoute[$j], ":", 1)
             If $pl[0] >= 4 And $pl[2] = "MOUSE_ABS" Then
                 $LastAbsX = Number($pl[3])
                 $LastAbsY = Number($pl[4])
@@ -197,22 +188,17 @@ Func _Playback_MouseMove($dx, $dy, $interval)
         EndIf
     EndIf
 
+    ; Drag — абсолютное движение, просто движение — относительное
     If $BtnHeld[0] Or $BtnHeld[1] Or $BtnHeld[2] Then
-        ; --- DRAG: абсолютное движение DD_mov ---
-        Local $newX = $LastAbsX + $mx
-        Local $newY = $LastAbsY + $my
-        If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_mov", "int", $newX, "int", $newY)
-        $LastAbsX = $newX
-        $LastAbsY = $newY
-        Sleep(Max(1, $interval * 1000))
+        $LastAbsX += $mx
+        $LastAbsY += $my
+        If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_mov", "int", $LastAbsX, "int", $LastAbsY)
     Else
-        ; --- Обычное движение: относительное DD_movR ---
         If ($mx <> 0 Or $my <> 0) And $g_hDD <> -1 Then
             DllCall($g_hDD, "int", "DD_movR", "int", $mx, "int", $my)
         EndIf
         $LastAbsX += $mx
         $LastAbsY += $my
-        Sleep(Max(1, $interval * 1000))
     EndIf
 EndFunc
 
