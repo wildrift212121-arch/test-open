@@ -1,8 +1,6 @@
 ; playback.au3
-; Version: 6.0 (2026-02-22)
-; - Воспроизведение в точном темпе записи: каждое движение запускается СТРОГО по расписанию!
-; - Движение мыши и drag выполняются за один шаг каждый, никаких мини-разложений.
-; - Сохраны все контрольные статусы и клавишные функции.
+; Version: 2026-02-22-fast-drag
+; Быстрый drag: любое движение мыши через DD_movR(dx, dy), независимо от состояния кнопок
 
 If @ScriptName <> "main.au3" Then Exit
 
@@ -15,13 +13,7 @@ Global $g_tPlaybackStart = 0
 Global $g_iLastWaitingIndex = -1
 
 Global $BtnHeld[3] = [False, False, False]
-Global $MustSleepAfterBtn = False
 Global Const $PLAYBACK_DEBUG = True
-Global $LastAbsX = -1, $LastAbsY = -1
-
-Func _dbg($s)
-    If $PLAYBACK_DEBUG Then _BotLog("[PLAYBACK] " & $s)
-EndFunc
 
 Func Min($a, $b)
     Return ($a < $b) ? $a : $b
@@ -31,20 +23,9 @@ Func Max($a, $b)
 EndFunc
 
 Func Playback_Start()
-    If $g_bPlayback Then
-        _dbg("Playback_Start: уже идёт воспроизведение, игнорирую")
-        Return
-    EndIf
-
-    If Not IsArray($g_aRoute) Or $g_aRoute[0] = 0 Then
-        _BotLog("Playback_Start: маршрут пустой")
-        Return
-    EndIf
-
-    If Not AION_Activate() Then
-        _BotLog("Playback_Start: не удалось активировать AION")
-        Return
-    EndIf
+    If $g_bPlayback Then Return
+    If Not IsArray($g_aRoute) Or $g_aRoute[0] = 0 Then Return
+    If Not AION_Activate() Then Return
 
     $g_bPlayback = True
     $g_iPlaybackIndex = 1
@@ -55,24 +36,12 @@ Func Playback_Start()
         $BtnHeld[$i] = False
     Next
 
-    $LastAbsX = -1
-    $LastAbsY = -1
-    $MustSleepAfterBtn = False
-
     If IsDeclared("g_hStatus") And $g_hStatus <> 0 Then GUICtrlSetData($g_hStatus, "Воспроизведение...")
-    _BotLog("Playback: старт, строк: " & $g_aRoute[0] & " (slot=" & (Routes_GetCurrentSlot() + 1) & ")")
-    _dbg("Начинаю с индекса " & $g_iPlaybackIndex)
 EndFunc
 
 Func Playback_Stop()
-    If Not $g_bPlayback Then
-        Key_ReleaseAll()
-        _BotLog("Playback_Stop: вызван при уже остановленном воспроизведении")
-        Return
-    EndIf
-
+    If Not $g_bPlayback Then Return
     $g_bPlayback = False
-    _BotLog("Playback: остановлено")
     Key_ReleaseAll()
     For $i = 0 To 2
         If $BtnHeld[$i] Then
@@ -80,42 +49,23 @@ Func Playback_Stop()
             $BtnHeld[$i] = False
         EndIf
     Next
-
     If IsDeclared("g_hStatus") And $g_hStatus <> 0 Then GUICtrlSetData($g_hStatus, "Остановлено")
 EndFunc
 
 Func Playback_Process()
     If Not $g_bPlayback Then Return
-
-    If Not IsArray($g_aRoute) Then
-        _BotLog("Playback_Process: ошибка — $g_aRoute не массив")
-        Playback_Stop()
-        Return
-    EndIf
-
-    If $g_aRoute[0] = 0 Then
-        _BotLog("Playback_Process: маршрут пустой")
+    If Not IsArray($g_aRoute) Or $g_aRoute[0] = 0 Then
         Playback_Stop()
         Return
     EndIf
 
     If $g_iPlaybackIndex > $g_aRoute[0] Then
-        _BotLog("Playback_Process: завершение маршрута")
         Playback_Stop()
-        If IsDeclared("Battle_MaybeStartAfterRoute") Then Battle_MaybeStartAfterRoute()
         Return
     EndIf
 
     Local $line = $g_aRoute[$g_iPlaybackIndex]
-    _dbg("Индекс=" & $g_iPlaybackIndex & " | Строка='" & StringStripWS($line, 3) & "'")
-
-    If StringStripWS($line, 8) = "" Then
-        $g_iPlaybackIndex += 1
-        $g_iLastWaitingIndex = -1
-        Return
-    EndIf
-
-    If StringLeft($line, 1) = "[" Then
+    If StringStripWS($line, 8) = "" Or StringLeft($line, 1) = "[" Then
         $g_iPlaybackIndex += 1
         $g_iLastWaitingIndex = -1
         Return
@@ -127,31 +77,27 @@ Func Playback_Process()
         $g_iLastWaitingIndex = -1
         Return
     EndIf
-
     Local $t = Number($p[1])
     Local $now = TimerDiff($g_tPlaybackStart) / 1000.0
     Local $delta = $t - $now
-
-    If $delta > 0.002 Then
-        Local $sleepMs = Int(Min(Max(($delta - 0.001) * 1000, 1), 100))
+    If $delta > 0.02 Then
+        Local $sleepMs = Int(Max(($delta - 0.01) * 1000, 10))
         Sleep($sleepMs)
         Return
     EndIf
-
     $g_iLastWaitingIndex = -1
 
     Local $type = $p[2]
     Switch $type
         Case "MOUSE_ABS"
+            ; Начальная абсолютная позиция — перемещаем мышь DD_mov
             If $p[0] >= 4 Then
                 Local $absX = Number($p[3])
                 Local $absY = Number($p[4])
                 If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_mov", "int", $absX, "int", $absY)
-                $LastAbsX = $absX
-                $LastAbsY = $absY
-                Sleep(5)
             EndIf
         Case "MOUSE"
+            ; — ВСЕГДА двигай мышь через DD_movR (быстро), независимо от кнопок!
             If $p[0] >= 4 Then _Playback_MouseMove($p[3], $p[4])
         Case "MOUSE_BTN"
             If $p[0] >= 4 Then _Playback_MouseBtn($p[3], $p[4])
@@ -172,33 +118,9 @@ Func _Playback_MouseMove($dx, $dy)
     Local $my = Number($dy)
     If $g_bInvX Then $mx = -$mx
     If $g_bInvY Then $my = -$my
-
-    If $LastAbsX = -1 Or $LastAbsY = -1 Then
-        For $j = 1 To $g_aRoute[0]
-            Local $pl = StringSplit($g_aRoute[$j], ":", 1)
-            If $pl[0] >= 4 And $pl[2] = "MOUSE_ABS" Then
-                $LastAbsX = Number($pl[3])
-                $LastAbsY = Number($pl[4])
-                ExitLoop
-            EndIf
-        Next
-        If $LastAbsX = -1 Or $LastAbsY = -1 Then
-            $LastAbsX = 0
-            $LastAbsY = 0
-        EndIf
-    EndIf
-
-    ; Drag — абсолютное движение, просто движение — относительное
-    If $BtnHeld[0] Or $BtnHeld[1] Or $BtnHeld[2] Then
-        $LastAbsX += $mx
-        $LastAbsY += $my
-        If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_mov", "int", $LastAbsX, "int", $LastAbsY)
-    Else
-        If ($mx <> 0 Or $my <> 0) And $g_hDD <> -1 Then
-            DllCall($g_hDD, "int", "DD_movR", "int", $mx, "int", $my)
-        EndIf
-        $LastAbsX += $mx
-        $LastAbsY += $my
+    ; — ВСЕГДА DD_movR (быстро)! Даже если кнопка мыши удержана
+    If ($mx <> 0 Or $my <> 0) And $g_hDD <> -1 Then
+        DllCall($g_hDD, "int", "DD_movR", "int", $mx, "int", $my)
     EndIf
 EndFunc
 
@@ -212,13 +134,9 @@ Func _Playback_MouseBtn($btn, $state)
             $code = ($state = "DOWN") ? 4 : 8
         Case "MIDDLE"
             $code = ($state = "DOWN") ? 16 : 32
-        Case Else
-            Return
     EndSwitch
     $BtnHeld[$idx] = ($state = "DOWN")
     If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_btn", "int", $code)
-    If $state = "DOWN" Then $MustSleepAfterBtn = True
-    Sleep(10)
 EndFunc
 
 Func _Playback_MouseBtnByIdx($idx, $state)
@@ -230,9 +148,6 @@ Func _Playback_MouseBtnByIdx($idx, $state)
             $code = ($state = "DOWN") ? 4 : 8
         Case 2
             $code = ($state = "DOWN") ? 16 : 32
-        Case Else
-            Return
     EndSwitch
     If $g_hDD <> -1 Then DllCall($g_hDD, "int", "DD_btn", "int", $code)
-    Sleep(10)
 EndFunc
