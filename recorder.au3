@@ -1,8 +1,7 @@
 ; recorder.au3
-; Version: 4.4 full+hook (2026-02-22)
-; --- Весь старый функционал 2.6 сохранён, интеграция WH_MOUSE_LL hook ---
-; --- Исправлена ошибка инициализации массива для полной совместимости с AutoIt ---
-; --- Для режима HOOK запись идет только через ловушку, весь pipeline маршрутов/слотов/файлов ---
+; Version: 5.1 full+hook (2026-02-22)
+; --- Исправлено: гарантируется создание файла маршрута в папке route ---
+; --- Добавлено логирование причин пустого маршрута, а также форс-создание файла при любых событиях ---
 
 If @ScriptName <> "main.au3" Then Exit
 
@@ -12,8 +11,8 @@ If @ScriptName <> "main.au3" Then Exit
 
 Global Const $ROUTE_SLOTS = 5
 Global Const $ROUTE_DIR = @ScriptDir & "\route"
-Global Const $MOUSE_RECORD_INTERVAL = 15
-Global $REC_MODE = "REC_HOOK" ; "REC_HOOK" — только через hook, "REC_NORMAL" — старая запись (MouseGetPos)
+Global Const $MOUSE_RECORD_INTERVAL = 15 ; ms между mousemove
+Global $REC_MODE = "REC_HOOK" ; "REC_HOOK" — только через hook, "REC_NORMAL" — стандартная запись
 
 Global $g_aRoutes[$ROUTE_SLOTS]
 Global $g_iRouteCounts[$ROUTE_SLOTS]
@@ -30,7 +29,6 @@ Global $g_aKeyMap[10][2]
 ; --- HOOK record ---
 Global $hHook = 0, $hStub_MouseProc = 0
 Global $g_sRouteHookFile = @ScriptDir & "\route_hook.log"
-Global $g_iLastAbsX = -1, $g_iLastAbsY = -1
 
 Func Routes_Init()
     If Not FileExists($ROUTE_DIR) Then DirCreate($ROUTE_DIR)
@@ -73,6 +71,10 @@ EndFunc
 Func Recorder_Start()
     If $g_bRecording Then Return
     If $REC_MODE = "REC_HOOK" Then
+        If Not AION_Activate() Then
+            _BotLog("Recorder_Start: не удалось активировать AION")
+            Return
+        EndIf
         _BotLog("Recorder_Start: режим HOOK")
         $g_tRecordStart = TimerInit()
         FileDelete($g_sRouteHookFile)
@@ -114,20 +116,26 @@ Func Recorder_Stop()
         $hStub_MouseProc = 0
         $g_bRecording = False
         HookLog_ToRoute($g_sRouteHookFile, $g_aRoute)
-        ; автоматическое сохранение после hook-записи
         Local $slot = $g_iCurrentRouteSlot
         $g_iRouteCounts[$slot] = $g_aRoute[0]
+        Local $file = Route_DefaultFileNameForSlot($slot)
+        ; --- Гарантировать сохранение даже если маршрут пуст (для диагностики)
+        Local $r = Recorder_SaveToFile($slot, $file)
         If $g_aRoute[0] > 0 Then
-            Local $file = Route_DefaultFileNameForSlot($slot)
-            Recorder_SaveToFile($slot, $file)
+            _BotLog('Recorder_Stop: маршрут сохранён в ' & $file & ', шагов: ' & $g_aRoute[0])
+        Else
+            _BotLog('Recorder_Stop: маршрут содержит 0 шагов, тем не менее файл создан для диагностики: ' & $file)
         EndIf
     Else
         $g_bRecording = False
         Local $slot = $g_iCurrentRouteSlot
         $g_iRouteCounts[$slot] = $g_aRoute[0]
+        Local $file = Route_DefaultFileNameForSlot($slot)
+        Local $r = Recorder_SaveToFile($slot, $file)
         If $g_aRoute[0] > 0 Then
-            Local $file = Route_DefaultFileNameForSlot($slot)
-            Recorder_SaveToFile($slot, $file)
+            _BotLog('Recorder_Stop: маршрут сохранён в ' & $file & ', шагов: ' & $g_aRoute[0])
+        Else
+            _BotLog('Recorder_Stop: маршрут содержит 0 шагов, файл создан для диагностики: ' & $file)
         EndIf
     EndIf
 EndFunc
@@ -142,11 +150,7 @@ Func __Route_AddLine($sLine)
 EndFunc
 
 Func Recorder_Process()
-    If $REC_MODE = "REC_HOOK" Then
-        ; hook-режим: всё логируется системой hook, здесь тикать ничего не надо!
-        Return
-    EndIf
-
+    If $REC_MODE = "REC_HOOK" Then Return
     If Not $g_bRecording Then Return
     Static $g_tLastMouseRecorded = 0
 
@@ -197,32 +201,45 @@ Func Recorder_Process()
 EndFunc
 
 Func _MouseProc_Hook($nCode, $wParam, $lParam)
-    If $nCode >= 0 Then
+    If $nCode >= 0 And $g_bRecording Then
         Local $tMSLL = DllStructCreate("int X;int Y;dword mouseData;dword flags;dword time;ulong_ptr dwExtraInfo", $lParam)
         Local $iX = DllStructGetData($tMSLL, "X")
         Local $iY = DllStructGetData($tMSLL, "Y")
         Local $timestamp = DllStructGetData($tMSLL, "time")
-        Local $event = ""
+        Static $lastMoveTime = 0
         Switch $wParam
             Case $WM_MOUSEMOVE
-                $event = StringFormat("%.3f:MOUSE_ABS:%d:%d", $timestamp / 1000.0, $iX, $iY)
+                If $lastMoveTime = 0 Or TimerDiff($lastMoveTime) >= $MOUSE_RECORD_INTERVAL Then
+                    FileWriteLine($g_sRouteHookFile, StringFormat("%.3f:MOUSE_ABS:%d:%d", $timestamp / 1000.0, $iX, $iY))
+                    $lastMoveTime = TimerInit()
+                EndIf
             Case $WM_LBUTTONDOWN
-                $event = StringFormat("%.3f:MOUSE_BTN:LEFT:DOWN", $timestamp / 1000.0)
+                FileWriteLine($g_sRouteHookFile, StringFormat("%.3f:MOUSE_BTN:LEFT:DOWN", $timestamp / 1000.0))
             Case $WM_LBUTTONUP
-                $event = StringFormat("%.3f:MOUSE_BTN:LEFT:UP", $timestamp / 1000.0)
+                FileWriteLine($g_sRouteHookFile, StringFormat("%.3f:MOUSE_BTN:LEFT:UP", $timestamp / 1000.0))
             Case $WM_RBUTTONDOWN
-                $event = StringFormat("%.3f:MOUSE_BTN:RIGHT:DOWN", $timestamp / 1000.0)
+                FileWriteLine($g_sRouteHookFile, StringFormat("%.3f:MOUSE_BTN:RIGHT:DOWN", $timestamp / 1000.0))
             Case $WM_RBUTTONUP
-                $event = StringFormat("%.3f:MOUSE_BTN:RIGHT:UP", $timestamp / 1000.0)
+                FileWriteLine($g_sRouteHookFile, StringFormat("%.3f:MOUSE_BTN:RIGHT:UP", $timestamp / 1000.0))
         EndSwitch
-        If $event <> "" Then FileWriteLine($g_sRouteHookFile, $event)
     EndIf
     Return _WinAPI_CallNextHookEx($hHook, $nCode, $wParam, $lParam)
 EndFunc
 
 Func HookLog_ToRoute($logFile, ByRef $routeArr)
+    If Not FileExists($logFile) Then
+        _BotLog("HookLog_ToRoute: лог-файл не найден: " & $logFile)
+        ReDim $routeArr[1]
+        $routeArr[0] = 0
+        Return
+    EndIf
     Local $aLines = StringSplit(FileRead($logFile), @CRLF, 1)
-    If $aLines[0] < 2 Then Return
+    If $aLines[0] < 2 Then
+        _BotLog("HookLog_ToRoute: лог-файл пуст или содержит единственную строку.")
+        ReDim $routeArr[1]
+        $routeArr[0] = 0
+        Return
+    EndIf
     Local $prevX = 0, $prevY = 0, $started = False
     Local $idx = 1
     ReDim $routeArr[1]
@@ -262,12 +279,13 @@ Func HookLog_ToRoute($logFile, ByRef $routeArr)
             $routeArr[0] = $idx - 1
         EndIf
     Next
+    _BotLog("HookLog_ToRoute: построено шагов " & $routeArr[0])
 EndFunc
 
 Func Recorder_SaveToFile($slot, $sFile = "")
     If $slot < 0 Or $slot >= $ROUTE_SLOTS Then Return False
     Local $a = $g_aRoutes[$slot]
-    If Not IsArray($a) Or $a[0] = 0 Then Return False
+    If Not IsArray($a) Then Return False
     If $sFile = "" Then $sFile = Route_DefaultFileNameForSlot($slot)
     Local $dir = StringLeft($sFile, StringInStr($sFile, "\", 0, -1) - 1)
     If Not FileExists($dir) Then DirCreate($dir)
